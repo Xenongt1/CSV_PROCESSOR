@@ -4,8 +4,10 @@ import tempfile
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse
-from app.parser import parse_csv, get_csv_summary
+from app.parser import parse_csv, get_csv_summary, get_cleaned_df
+from app.database import save_df_to_mysql
 from typing import List, Dict, Any, Optional
+import pandas as pd
 
 # Configure logging
 logging.basicConfig(
@@ -44,7 +46,9 @@ async def get_info():
 async def upload_csv(
     file: UploadFile = File(...),
     filter_col: Optional[str] = Query(None, description="Column name to filter by"),
-    filter_val: Optional[str] = Query(None, description="Value to filter for")
+    filter_val: Optional[str] = Query(None, description="Value to filter for"),
+    save_to_db: bool = Query(False, description="Whether to save cleaned data to MySQL"),
+    table_name: Optional[str] = Query(None, description="MySQL table name (defaults to filename)")
 ):
     logger.info(f"Uploading file: {file.filename}")
     if not file.filename.endswith('.csv'):
@@ -56,14 +60,24 @@ async def upload_csv(
         data = parse_csv(content, filter_col=filter_col, filter_val=filter_val)
         summary = get_csv_summary(content)
         
+        db_status = "Not saved"
+        if save_to_db:
+            df = get_cleaned_df(content)
+            # Use provided table name or strip extension from filename
+            target_table = table_name or os.path.splitext(file.filename)[0]
+            save_df_to_mysql(df, target_table)
+            db_status = f"Saved to table: {target_table}"
+            logger.info(db_status)
+        
         logger.info(f"Successfully processed {file.filename} with {len(data)} filtered rows")
         return {
             "filename": file.filename,
+            "db_status": db_status,
             "filter_applied": {"column": filter_col, "value": filter_val} if filter_col else None,
             "summary": summary,
             "data": data[:10]  # Return first 10 rows as preview
         }
-    except ValueError as e:
+    except Exception as e:
         logger.error(f"Error processing {file.filename}: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 

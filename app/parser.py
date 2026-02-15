@@ -25,34 +25,35 @@ def detect_delimiter(content: Union[bytes, str]) -> str:
     except Exception:
         return ','
 
+def get_cleaned_df(content: Union[bytes, str]) -> pd.DataFrame:
+    """
+    Internal helper to get a cleaned Pandas DataFrame.
+    """
+    delimiter = detect_delimiter(content)
+    if isinstance(content, str):
+        df = pd.read_csv(content, sep=delimiter)
+    else:
+        df = pd.read_csv(io.BytesIO(content), sep=delimiter)
+    
+    df.columns = df.columns.str.strip()
+    df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+    
+    for col in df.columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except (ValueError, TypeError):
+            pass
+    return df
+
 def parse_csv(content: Union[bytes, str], filter_col: str = None, filter_val: Any = None) -> List[Dict[str, Any]]:
     """
     Parses CSV content (bytes or file path) into a list of dictionaries with optional filtering.
     """
     try:
-        delimiter = detect_delimiter(content)
-        
-        if isinstance(content, str):
-            df = pd.read_csv(content, sep=delimiter)
-        else:
-            df = pd.read_csv(io.BytesIO(content), sep=delimiter)
-        
-        # Clean data: strip whitespace from column names
-        df.columns = df.columns.str.strip()
-        
-        # Clean data: strip whitespace from all string elements
-        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
-        
-        # Attempt to convert to numeric types
-        for col in df.columns:
-            try:
-                df[col] = pd.to_numeric(df[col])
-            except (ValueError, TypeError):
-                pass
+        df = get_cleaned_df(content)
         
         # Apply filtering if requested
         if filter_col and filter_col in df.columns:
-            # Convert filter_val to appropriate type if possible
             try:
                 if df[filter_col].dtype in ['int64', 'float64']:
                     filter_val = float(filter_val)
@@ -75,14 +76,7 @@ def get_csv_summary(content: Union[bytes, str]) -> Dict[str, Any]:
     """
     try:
         delimiter = detect_delimiter(content)
-        
-        if isinstance(content, str):
-            df = pd.read_csv(content, sep=delimiter)
-        else:
-            df = pd.read_csv(io.BytesIO(content), sep=delimiter)
-            
-        df.columns = df.columns.str.strip()
-        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+        df = get_cleaned_df(content)
         df = df.apply(pd.to_numeric, errors='ignore')
 
         stats = {}

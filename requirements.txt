@@ -7,3 +7,5 @@ faker
 matplotlib
 seaborn
 notebook
+sqlalchemy
+mysql-connector-python
