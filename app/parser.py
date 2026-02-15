@@ -15,6 +15,9 @@ def detect_delimiter(content: Union[bytes, str]) -> str:
         else:
             raw_data = content[:1024]
             
+        if not raw_data:
+            raise ValueError("The provided CSV file is empty.")
+            
         sample = raw_data.decode('utf-8')
         sniffer = csv.Sniffer()
         dialect = sniffer.sniff(sample)
