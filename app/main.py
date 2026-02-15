@@ -26,6 +26,20 @@ async def root():
     logger.info("Health check requested")
     return {"message": "CSV Processor API is running", "version": "2.0.0"}
 
+@app.get("/info", tags=["System"])
+async def get_info():
+    """
+    Returns system and API metadata.
+    """
+    logger.info("System info requested")
+    return {
+        "app_name": "CSV Processor Pro",
+        "version": "2.0.0",
+        "author": "Antigravity",
+        "environment": os.getenv("ENV", "development"),
+        "status": "operational"
+    }
+
 @app.post("/upload", tags=["Processing"])
 async def upload_csv(
     file: UploadFile = File(...),
