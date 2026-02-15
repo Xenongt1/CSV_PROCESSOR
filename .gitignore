@@ -10,3 +10,4 @@ ENV/
 .fastapi_docs
 data/*.csv
 !data/sample.csv
+docs/SUBMISSION_CHECKLIST.md
