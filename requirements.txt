@@ -4,3 +4,6 @@ pandas
 python-multipart
 pytest
 faker
+matplotlib
+seaborn
+notebook
