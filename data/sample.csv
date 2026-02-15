@@ -1,6 +1,5 @@
-name,department,salary
-John Doe,Engineering,80000
-Jane Smith,Marketing,75000
-Bob Johnson,Engineering,90000
-Alice Brown,Sales,72000
-Charlie Davis,HR,68000
+product,sale_amount,quantity,date
+Laptop,1200.50,2,2023-10-01
+Mouse,25.00,10,2023-10-02
+Keyboard,75.25,5,2023-10-03
+Monitor,300.00,3,2023-10-04

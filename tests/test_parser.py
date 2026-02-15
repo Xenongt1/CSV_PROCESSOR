@@ -24,3 +24,12 @@ def test_get_csv_summary_robust():
     assert summary["rows"] == 2
     assert summary["delimiter"] == ";"
     assert summary["missing_values"]["age"] == 1
+
+def test_parse_csv():
+    """
+    User requested test case using a file path.
+    """
+    data = parse_csv("data/sample.csv")
+    assert len(data) > 0
+    assert "sale_amount" in data[0]
+    assert "quantity" in data[0]
