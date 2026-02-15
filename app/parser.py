@@ -22,9 +22,9 @@ def detect_delimiter(content: Union[bytes, str]) -> str:
     except Exception:
         return ','
 
-def parse_csv(content: Union[bytes, str]) -> List[Dict[str, Any]]:
+def parse_csv(content: Union[bytes, str], filter_col: str = None, filter_val: Any = None) -> List[Dict[str, Any]]:
     """
-    Parses CSV content (bytes or file path) into a list of dictionaries.
+    Parses CSV content (bytes or file path) into a list of dictionaries with optional filtering.
     """
     try:
         delimiter = detect_delimiter(content)
@@ -47,6 +47,16 @@ def parse_csv(content: Union[bytes, str]) -> List[Dict[str, Any]]:
             except (ValueError, TypeError):
                 pass
         
+        # Apply filtering if requested
+        if filter_col and filter_col in df.columns:
+            # Convert filter_val to appropriate type if possible
+            try:
+                if df[filter_col].dtype in ['int64', 'float64']:
+                    filter_val = float(filter_val)
+            except (ValueError, TypeError):
+                pass
+            df = df[df[filter_col] == filter_val]
+            
         # Convert to dict and handle missing values (NaN -> None)
         records = df.to_dict(orient="records")
         return [
@@ -58,7 +68,7 @@ def parse_csv(content: Union[bytes, str]) -> List[Dict[str, Any]]:
 
 def get_csv_summary(content: Union[bytes, str]) -> Dict[str, Any]:
     """
-    Returns a summary of the CSV data.
+    Returns an advanced summary of the CSV data.
     """
     try:
         delimiter = detect_delimiter(content)
@@ -69,13 +79,32 @@ def get_csv_summary(content: Union[bytes, str]) -> Dict[str, Any]:
             df = pd.read_csv(io.BytesIO(content), sep=delimiter)
             
         df.columns = df.columns.str.strip()
-        
+        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+        df = df.apply(pd.to_numeric, errors='ignore')
+
+        stats = {}
+        for col in df.columns:
+            col_data = df[col]
+            if pd.api.types.is_numeric_dtype(col_data):
+                stats[col] = {
+                    "mean": round(float(col_data.mean()), 2) if not col_data.empty else 0,
+                    "median": round(float(col_data.median()), 2) if not col_data.empty else 0,
+                    "min": float(col_data.min()) if not col_data.empty else 0,
+                    "max": float(col_data.max()) if not col_data.empty else 0
+                }
+            else:
+                stats[col] = {
+                    "unique_count": int(col_data.nunique()),
+                    "top_values": col_data.value_counts().head(3).to_dict()
+                }
+
         return {
             "rows": len(df),
             "columns": list(df.columns),
             "delimiter": delimiter,
             "column_types": df.dtypes.apply(lambda x: str(x)).to_dict(),
-            "missing_values": df.isnull().sum().to_dict()
+            "missing_values": df.isnull().sum().to_dict(),
+            "advanced_stats": stats
         }
     except Exception as e:
         raise ValueError(f"Error summarizing CSV: {str(e)}")

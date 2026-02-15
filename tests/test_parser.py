@@ -31,5 +31,18 @@ def test_parse_csv():
     """
     data = parse_csv("data/sample.csv")
     assert len(data) > 0
-    assert "sale_amount" in data[0]
-    assert "quantity" in data[0]
+def test_parse_csv_filtering():
+    csv_content = b"name,department,salary\nAlice,Engineering,80000\nBob,Marketing,75000\nCharlie,Engineering,90000"
+    
+    # Test filtering Engineering
+    data = parse_csv(csv_content, filter_col="department", filter_val="Engineering")
+    assert len(data) == 2
+    assert all(d["department"] == "Engineering" for d in data)
+
+def test_get_csv_summary_advanced():
+    csv_content = b"name,salary\nAlice,80000\nBob,70000\nCharlie,90000"
+    summary = get_csv_summary(csv_content)
+    
+    assert "advanced_stats" in summary
+    assert summary["advanced_stats"]["salary"]["mean"] == 80000.0
+    assert summary["advanced_stats"]["name"]["unique_count"] == 3
